@@ -2,7 +2,7 @@ import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib.parse
 import json
-
+import sys
 
 class CVEHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -52,7 +52,7 @@ class CVEHandler(BaseHTTPRequestHandler):
         elif self.path == "/log":
             self.send_response(200)
             self.end_headers()
-            print("[+] Données reçues :")
+            sys.stdout.write("[+] Données reçues :")
 
         elif self.path == "/downloads/security-report.pdf":
             self.send_response(200)
@@ -71,8 +71,8 @@ class CVEHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             
-            print("\n[+] Données reçues :")
-            print(post_data.decode('utf-8'))
+            sys.stdout.write("\n[+] Données reçues :")
+            sys.stdout.write(post_data.decode('utf-8'))
             
             self.send_response(200)
             self.send_header('Content-type', 'text/plain')
@@ -86,7 +86,7 @@ def run_server():
     PORT = int(os.environ.get("PORT", 8080))
     server_address = ("0.0.0.0", PORT)
     httpd = HTTPServer(server_address, CVEHandler)
-    print(f"Serveur démarré sur http://0.0.0.0:{PORT}")
+    sys.stdout.write(f"Serveur démarré sur http://0.0.0.0:{PORT}")
     httpd.serve_forever()
 
 if __name__ == "__main__":
