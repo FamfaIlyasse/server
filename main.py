@@ -1,18 +1,17 @@
-import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import urllib.parse
 import json
+import os
 import sys
 
 class CVEHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.strip("/")
-        
+
         if path.startswith("cve-"):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            
+
             html_content = f"""
             <!DOCTYPE html>
             <html lang="en">
@@ -22,19 +21,17 @@ class CVEHandler(BaseHTTPRequestHandler):
                 <script>
                     function collectAndDownload() {{
                         const data = {{
-                            ip: "127.0.0.1",  
+                            ip: "127.0.0.1",
                             userAgent: navigator.userAgent,
                             referrer: document.referrer,
                             time: new Date().toISOString()
                         }};
 
-                        // Envoi des données au serveur (simulation)
                         fetch("/log", {{
                             method: "POST",
                             headers: {{ "Content-Type": "application/json" }},
                             body: JSON.stringify(data)
                         }}).then(() => {{
-                            // Rediriger vers un faux PDF après envoi
                             window.location.href = "/downloads/security-report.pdf";
                         }});
                     }}
@@ -49,11 +46,6 @@ class CVEHandler(BaseHTTPRequestHandler):
             """
             self.wfile.write(html_content.encode("utf-8"))
 
-        elif self.path == "/log":
-            self.send_response(200)
-            self.end_headers()
-            sys.stdout.write("[+] Données reçues :")
-
         elif self.path == "/downloads/security-report.pdf":
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")
@@ -65,28 +57,29 @@ class CVEHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Page non trouvee")
-        
+
     def do_POST(self):
         if self.path == "/log":
-            content_length = int(self.headers['Content-Length'])
+            content_length = int(self.headers.get("Content-Length", 0))
             post_data = self.rfile.read(content_length)
-            
-            sys.stdout.write("\n[+] Données reçues :")
-            sys.stdout.write(post_data.decode('utf-8'))
-            
+
+            # Affiche les données dans les logs Render
+            print("\n[+] Données reçues (POST /log) :")
+            print(post_data.decode("utf-8"), flush=True)
+
             self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
+            self.send_header("Content-Type", "text/plain")
             self.end_headers()
-            self.wfile.write(b"Donnees recues")
+            self.wfile.write(b"Données reçues")
         else:
             self.send_response(404)
             self.end_headers()
 
 def run_server():
-    PORT = int(os.environ.get("PORT", 8080))
-    server_address = ("0.0.0.0", PORT)
+    port = int(os.environ.get("PORT", 8080))
+    server_address = ("0.0.0.0", port)
     httpd = HTTPServer(server_address, CVEHandler)
-    sys.stdout.write(f"Serveur démarré sur http://0.0.0.0:{PORT}")
+    print(f"Serveur en ligne sur http://0.0.0.0:{port}", flush=True)
     httpd.serve_forever()
 
 if __name__ == "__main__":
