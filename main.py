@@ -64,13 +64,13 @@ class CVEHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
 
             # Affiche les données dans les logs Render
-            print("\n[+] Données reçues (POST /log) :")
+            print("\n[+] Donnees recues (POST /log) :")
             print(post_data.decode("utf-8"), flush=True)
 
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
-            self.wfile.write(b"Données reçues")
+            self.wfile.write(b"Donnees recues")
         else:
             self.send_response(404)
             self.end_headers()
