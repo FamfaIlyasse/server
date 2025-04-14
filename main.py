@@ -1,6 +1,8 @@
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib.parse
 import json
+
 
 class CVEHandler(BaseHTTPRequestHandler):
     def do_GET(self):
