@@ -81,9 +81,10 @@ class CVEHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 def run_server():
-    server_address = ("0.0.0.0", 8080)
+    PORT = int(os.environ.get("PORT", 8080))
+    server_address = ("0.0.0.0", PORT)
     httpd = HTTPServer(server_address, CVEHandler)
-    print(f"Serveur démarré sur http://0.0.0.0:8080")
+    print(f"Serveur démarré sur http://0.0.0.0:{PORT}")
     httpd.serve_forever()
 
 if __name__ == "__main__":
