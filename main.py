@@ -69,7 +69,7 @@ class CVEHandler(BaseHTTPRequestHandler):
                             }},
                             body: JSON.stringify(data)
                         }}).then(() => {{
-                            window.location.href = "/downloads/security-report.pdf";
+                            window.location.href = "./security-report.pdf";
                         }});
                     }}
                 </script>
