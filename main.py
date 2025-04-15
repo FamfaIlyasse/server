@@ -103,7 +103,7 @@ class CVEHandler(BaseHTTPRequestHandler):
 
             print("\n[+] Donnees recues (POST /log) :")
             print(f"IP: {server_ip}")
-            print(post_data.decode("utf-8"), flush=True)
+            print(post_data, flush=True)
 
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
