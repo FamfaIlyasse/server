@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 import sys
+import socket
 
 class CVEHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -11,17 +12,51 @@ class CVEHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-
             html_content = f"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
-                <title>CVE Details</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>CVE Report - {path.upper()}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+                <style>
+                    body {{
+                        font-family: 'Inter', sans-serif;
+                        background-color: #0f0f0f;
+                        color: #f5f5f5;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                        margin: 0;
+                    }}
+                    h1 {{
+                        font-size: 2.5rem;
+                        margin-bottom: 1rem;
+                    }}
+                    p {{
+                        font-size: 1.2rem;
+                        margin-bottom: 2rem;
+                    }}
+                    button {{
+                        background-color: #007bff;
+                        color: white;
+                        padding: 0.8rem 1.5rem;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        transition: background-color 0.3s ease;
+                    }}
+                    button:hover {{
+                        background-color: #0056b3;
+                    }}
+                </style>
                 <script>
                     function collectAndDownload() {{
                         const data = {{
-                            ip: "127.0.0.1",
                             userAgent: navigator.userAgent,
                             referrer: document.referrer,
                             time: new Date().toISOString()
@@ -29,7 +64,9 @@ class CVEHandler(BaseHTTPRequestHandler):
 
                         fetch("/log", {{
                             method: "POST",
-                            headers: {{ "Content-Type": "application/json" }},
+                            headers: {{
+                                "Content-Type": "application/json"
+                            }},
                             body: JSON.stringify(data)
                         }}).then(() => {{
                             window.location.href = "/downloads/security-report.pdf";
@@ -39,14 +76,14 @@ class CVEHandler(BaseHTTPRequestHandler):
             </head>
             <body>
                 <h1>Détails pour {path.upper()}</h1>
-                <p>Téléchargez le rapport de sécurité critique :</p>
-                <button onclick="collectAndDownload()">Télécharger le rapport</button>
+                <p>Un rapport critique a été généré. Cliquez pour le télécharger :</p>
+                <button onclick="collectAndDownload()">📄 Télécharger le rapport</button>
             </body>
             </html>
             """
             self.wfile.write(html_content.encode("utf-8"))
 
-        elif self.path == "/downloads/security-report.pdf":
+        elif self.path == "./security-report.pdf":
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")
             self.send_header("Content-Disposition", "attachment; filename=security-report.pdf")
@@ -61,10 +98,11 @@ class CVEHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/log":
             content_length = int(self.headers.get("Content-Length", 0))
-            post_data = self.rfile.read(content_length)
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            server_ip = socket.gethostbyname(socket.gethostname())
 
-            # Affiche les données dans les logs Render
             print("\n[+] Donnees recues (POST /log) :")
+            print(f"IP: {server_ip}")
             print(post_data.decode("utf-8"), flush=True)
 
             self.send_response(200)
