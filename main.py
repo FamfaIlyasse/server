@@ -99,10 +99,10 @@ class CVEHandler(BaseHTTPRequestHandler):
         if self.path == "/log":
             content_length = int(self.headers.get("Content-Length", 0))
             post_data = self.rfile.read(content_length).decode("utf-8")
-            server_ip = socket.gethostbyname(socket.gethostname())
+            client_ip = self.client_address[0]
 
             print("\n[+] Donnees recues (POST /log) :")
-            print(f"IP: {server_ip}")
+            print(f"IP: {client_ip}")
             print(post_data, flush=True)
 
             self.send_response(200)
