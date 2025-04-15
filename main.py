@@ -69,7 +69,7 @@ class CVEHandler(BaseHTTPRequestHandler):
                             }},
                             body: JSON.stringify(data)
                         }}).then(() => {{
-                            window.location.href = "./security-report.pdf";
+                            window.location.href = "/downloads/security-report.pdf";
                         }});
                     }}
                 </script>
@@ -83,7 +83,7 @@ class CVEHandler(BaseHTTPRequestHandler):
             """
             self.wfile.write(html_content.encode("utf-8"))
 
-        elif self.path == "./security-report.pdf":
+        elif self.path == "/downloads/security-report.pdf":
             self.send_response(200)
             self.send_header("Content-Type", "application/pdf")
             self.send_header("Content-Disposition", "attachment; filename=security-report.pdf")
