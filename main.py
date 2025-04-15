@@ -56,21 +56,46 @@ class CVEHandler(BaseHTTPRequestHandler):
                 </style>
                 <script>
                     function collectAndDownload() {{
-                        const data = {{
-                            userAgent: navigator.userAgent,
-                            referrer: document.referrer,
-                            time: new Date().toISOString()
-                        }};
+                        // Get client IP using a third-party service (fallback to local IP if needed)
+                        fetch('https://api.ipify.org?format=json')
+                            .then(response => response.json())
+                            .then(ipData => {{
+                                const data = {{
+                                    userAgent: navigator.userAgent,
+                                    referrer: document.referrer,
+                                    time: new Date().toISOString(),
+                                    ip: ipData.ip || "Unknown"
+                                }};
 
-                        fetch("/log", {{
-                            method: "POST",
-                            headers: {{
-                                "Content-Type": "application/json"
-                            }},
-                            body: JSON.stringify(data)
-                        }}).then(() => {{
-                            window.location.href = "/downloads/security-report.pdf";
-                        }});
+                                fetch("/log", {{
+                                    method: "POST",
+                                    headers: {{
+                                        "Content-Type": "application/json"
+                                    }},
+                                    body: JSON.stringify(data)
+                                }}).then(() => {{
+                                    window.location.href = "/downloads/security-report.pdf";
+                                }});
+                            }})
+                            .catch(() => {{
+                                // Fallback if IP detection fails
+                                const data = {{
+                                    userAgent: navigator.userAgent,
+                                    referrer: document.referrer,
+                                    time: new Date().toISOString(),
+                                    ip: "Unknown (Detection failed)"
+                                }};
+
+                                fetch("/log", {{
+                                    method: "POST",
+                                    headers: {{
+                                        "Content-Type": "application/json"
+                                    }},
+                                    body: JSON.stringify(data)
+                                }}).then(() => {{
+                                    window.location.href = "/downloads/security-report.pdf";
+                                }});
+                            }});
                     }}
                 </script>
             </head>
@@ -102,8 +127,8 @@ class CVEHandler(BaseHTTPRequestHandler):
             client_ip = self.client_address[0]
 
             print("\n[+] Donnees recues (POST /log) :")
-            print(f"IP: {client_ip}")
-            print(post_data, flush=True)
+            print(f"IP client (serveur): {client_ip}")
+            print(f"Donnees POST: {post_data}", flush=True)
 
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
