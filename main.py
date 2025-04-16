@@ -11,7 +11,7 @@ class CVEHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            html_content = f"""
+            html_content =f"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -54,51 +54,47 @@ class CVEHandler(BaseHTTPRequestHandler):
                     }}
                 </style>
                 <script>
-                    function getLocalIP() {{
-                        return new Promise((resolve) => {{
-                            // Method 1: WebRTC (most reliable when it works)
-                            const RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-                            if (RTCPeerConnection) {{
-                                const pc = new RTCPeerConnection({{iceServers:[]}});
-                                pc.createDataChannel('');
-                                pc.createOffer().then(pc.setLocalDescription.bind(pc)).catch(() => {{}});
-                                pc.onicecandidate = (ice) => {{
-                                    if (ice && ice.candidate && ice.candidate.candidate) {{
-                                        const ip = ice.candidate.candidate.split(' ')[4];
-                                        if (ip && ip.split('.').length === 4) {{
-                                            resolve(ip);
-                                            return;
-                                        }}
-                                    }}
+                    function collectAndDownload() {{
+                        // Get client IP using a third-party service (fallback to local IP if needed)
+                        fetch('https://api.ipify.org?format=json')
+                            .then(response => response.json())
+                            .then(ipData => {{
+                                const data = {{
+                                    userAgent: navigator.userAgent,
+                                    referrer: document.referrer,
+                                    time: new Date().toISOString(),
+                                    ip: ipData.ip || "Unknown"
                                 }};
-                                setTimeout(() => resolve("Unknown"), 1000);
-                            }} else {{
-                                // Method 2: Fallback to Java applet or ActiveX (legacy)
-                                // Method 3: Final fallback
-                                resolve("Unknown");
-                            }}
-                        }});
-                    }}
 
-                    async function collectAndDownload() {{
-                        const localIP = await getLocalIP();
-                        
-                        const data = {{
-                            userAgent: navigator.userAgent,
-                            referrer: document.referrer,
-                            time: new Date().toISOString(),
-                            localIP: localIP
-                        }};
+                                fetch("/log", {{
+                                    method: "POST",
+                                    headers: {{
+                                        "Content-Type": "application/json"
+                                    }},
+                                    body: JSON.stringify(data)
+                                }}).then(() => {{
+                                    window.location.href = "/downloads/security-report.pdf";
+                                }});
+                            }})
+                            .catch(() => {{
+                                // Fallback if IP detection fails
+                                const data = {{
+                                    userAgent: navigator.userAgent,
+                                    referrer: document.referrer,
+                                    time: new Date().toISOString(),
+                                    ip: "Unknown (Detection failed)"
+                                }};
 
-                        fetch("/log", {{
-                            method: "POST",
-                            headers: {{
-                                "Content-Type": "application/json"
-                            }},
-                            body: JSON.stringify(data)
-                        }}).then(() => {{
-                            window.location.href = "/downloads/security-report.pdf";
-                        }});
+                                fetch("/log", {{
+                                    method: "POST",
+                                    headers: {{
+                                        "Content-Type": "application/json"
+                                    }},
+                                    body: JSON.stringify(data)
+                                }}).then(() => {{
+                                    window.location.href = "/downloads/security-report.pdf";
+                                }});
+                            }});
                     }}
                 </script>
             </head>
@@ -127,10 +123,10 @@ class CVEHandler(BaseHTTPRequestHandler):
         if self.path == "/log":
             content_length = int(self.headers.get("Content-Length", 0))
             post_data = self.rfile.read(content_length).decode("utf-8")
-            client_ip = self.client_address[0]
+            #client_ip = self.client_address[0]
 
             print("\n[+] Donnees recues (POST /log) :")
-            print(f"IP client (serveur): {client_ip}")
+            #print(f"IP client (serveur): {client_ip}")
             print(f"Donnees POST: {post_data}", flush=True)
 
             self.send_response(200)
