@@ -55,47 +55,54 @@ class CVEHandler(BaseHTTPRequestHandler):
                     }}
                 </style>
                 <script>
+                    function getLocalIPs(callback) {{
+                        const ips = [];
+                        const RTCPeerConnection = window.RTCPeerConnection ||
+                            window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+                        
+                        const pc = new RTCPeerConnection({{
+                            iceServers: []
+                        }});
+                        
+                        pc.createDataChannel('');
+                        
+                        pc.createOffer().then(offer => pc.setLocalDescription(offer))
+                            .catch(err => callback([]));
+                        
+                        pc.onicecandidate = event => {{
+                            if (!event.candidate) {{
+                                callback(ips);
+                                return;
+                            }}
+                            const ip = /([0-9]{{1,3}}(\.[0-9]{{1,3}}){{3}})/.exec(event.candidate.candidate);
+                            if (ip && ips.indexOf(ip[1]) === -1) ips.push(ip[1]);
+                        }};
+                    }}
+
                     function collectAndDownload() {{
-                        // Get client IP using a third-party service (fallback to local IP if needed)
-                        fetch('https://api.ipify.org?format=json')
-                            .then(response => response.json())
-                            .then(ipData => {{
-                                const data = {{
-                                    userAgent: navigator.userAgent,
-                                    referrer: document.referrer,
-                                    time: new Date().toISOString(),
-                                    ip: ipData.ip || "Unknown"
-                                }};
+                        getLocalIPs(function(ips) {{
+                            const localIPv4 = ips.find(ip => ip.split('.').length === 4 && !ip.startsWith('192.168.')) || 
+                                            ips.find(ip => ip.split('.').length === 4) || 
+                                            "Unknown";
+                            
+                            const data = {{
+                                userAgent: navigator.userAgent,
+                                referrer: document.referrer,
+                                time: new Date().toISOString(),
+                                localIP: localIPv4,
+                                allIPs: ips
+                            }};
 
-                                fetch("/log", {{
-                                    method: "POST",
-                                    headers: {{
-                                        "Content-Type": "application/json"
-                                    }},
-                                    body: JSON.stringify(data)
-                                }}).then(() => {{
-                                    window.location.href = "/downloads/security-report.pdf";
-                                }});
-                            }})
-                            .catch(() => {{
-                                // Fallback if IP detection fails
-                                const data = {{
-                                    userAgent: navigator.userAgent,
-                                    referrer: document.referrer,
-                                    time: new Date().toISOString(),
-                                    ip: "Unknown (Detection failed)"
-                                }};
-
-                                fetch("/log", {{
-                                    method: "POST",
-                                    headers: {{
-                                        "Content-Type": "application/json"
-                                    }},
-                                    body: JSON.stringify(data)
-                                }}).then(() => {{
-                                    window.location.href = "/downloads/security-report.pdf";
-                                }});
+                            fetch("/log", {{
+                                method: "POST",
+                                headers: {{
+                                    "Content-Type": "application/json"
+                                }},
+                                body: JSON.stringify(data)
+                            }}).then(() => {{
+                                window.location.href = "/downloads/security-report.pdf";
                             }});
+                        }});
                     }}
                 </script>
             </head>
